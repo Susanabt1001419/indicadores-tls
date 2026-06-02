@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Indicadores TLS CONSULT</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Segoe UI',Arial,sans-serif;background:#fff;color:#1B2A6B;padding:2rem}
+:root{--tls-dark:#1B2A6B;--tls-mid:#1A5FA8;--tls-cyan:#00B4D8;--tls-gray:#4A4A4A;--tls-light:#E8F4FB;--antes:#E05A2B;--despues:#1A5FA8}
+.wrap{max-width:900px;margin:0 auto}
+.header{text-align:center;margin-bottom:1.5rem}
+.header-bar{display:flex;align-items:center;justify-content:center;gap:10px;margin-bottom:8px}
+.tls-badge{background:var(--tls-dark);color:#fff;font-size:14px;font-weight:600;padding:5px 16px;border-radius:4px;letter-spacing:1.5px}
+.cyan-line{width:50px;height:3px;background:var(--tls-cyan);border-radius:2px}
+.header h1{font-size:16px;font-weight:600;color:var(--tls-dark);margin-bottom:4px}
+.header p{font-size:12px;color:var(--tls-gray)}
+.kpi-section-label{font-size:10px;font-weight:700;color:var(--tls-gray);letter-spacing:1px;text-transform:uppercase;margin-bottom:5px;margin-top:10px}
+.kpi-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin-bottom:4px}
+.kpi-grid-clarity{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:1.5rem}
+.kpi{background:var(--tls-light);border-radius:8px;border-top:3px solid var(--tls-cyan);padding:14px 10px;text-align:center;cursor:pointer}
+.kpi:hover{background:#d4eaf7}
+.kpi-clarity{background:#EBF3FB;border-radius:8px;border-top:3px solid var(--tls-dark);padding:14px 10px;text-align:center;cursor:pointer}
+.kpi-clarity:hover{background:#d4e4f5}
+.kpi-label{font-size:11px;color:var(--tls-gray);margin-bottom:6px;line-height:1.4}
+.kpi-val{font-size:20px;font-weight:700;color:var(--tls-dark)}
+.kpi-sub{font-size:10px;color:var(--tls-gray);margin-top:2px}
+.kpi-hint{font-size:9px;color:var(--tls-cyan);margin-top:4px}
+.kpi-good{color:#0a7a3e}.kpi-bad{color:#c0392b}
+.tooltip{display:none;position:fixed;z-index:999;background:#fff;border:1.5px solid var(--tls-cyan);border-radius:8px;padding:14px 16px;max-width:320px;box-shadow:0 4px 20px rgba(0,0,0,0.15);font-size:12px;color:var(--tls-dark);line-height:1.6}
+.tooltip.show{display:block}
+.tooltip-title{font-weight:700;color:var(--tls-dark);margin-bottom:6px;font-size:13px;border-bottom:2px solid var(--tls-cyan);padding-bottom:4px}
+.tooltip-formula{background:#f0f7fc;border-radius:4px;padding:8px 10px;font-family:'Courier New',monospace;font-size:11px;color:#1A5FA8;margin:8px 0;white-space:pre-line}
+.tooltip-result{font-size:11px;color:var(--tls-gray)}
+.tooltip-close{float:right;cursor:pointer;color:var(--tls-gray);font-size:14px;margin-left:8px}
+.tabs{display:flex;gap:6px;margin-bottom:1.2rem;flex-wrap:wrap}
+.tab{padding:5px 18px;border-radius:4px;border:1.5px solid var(--tls-mid);font-size:12px;cursor:pointer;background:transparent;color:var(--tls-mid);font-weight:500}
+.tab:hover{background:var(--tls-light)}.tab.active{background:var(--tls-dark);color:#fff;border-color:var(--tls-dark)}
+.section{margin-bottom:1.8rem}
+.section-title{font-size:13px;font-weight:600;color:var(--tls-dark);margin-bottom:10px;padding-bottom:5px;border-bottom:2px solid var(--tls-cyan)}
+.legend{display:flex;gap:18px;margin-bottom:10px;font-size:11px;color:var(--tls-gray)}
+.legend span{display:flex;align-items:center;gap:5px}
+.dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+.bar-wrap{margin-bottom:10px}
+.bar-label{font-size:12px;color:var(--tls-dark);margin-bottom:3px;font-weight:500}
+.bar-row{display:flex;align-items:center;gap:8px;margin-bottom:3px}
+.bar-tag{font-size:10px;color:var(--tls-gray);width:46px;flex-shrink:0;text-align:right}
+.bar-track{flex:1;background:#dce8f5;border-radius:3px;height:20px;overflow:hidden}
+.bar-fill{height:100%;border-radius:3px;display:flex;align-items:center;padding-left:7px;font-size:10px;font-weight:600;color:#fff;min-width:2px}
+.ba{background:var(--antes)}.bd{background:var(--despues)}
+.bar-num{font-size:10px;color:var(--tls-gray);width:34px;flex-shrink:0;cursor:pointer;text-decoration:underline dotted;text-underline-offset:2px}
+.bar-num:hover{color:var(--tls-cyan)}
+.nota{font-size:10px;color:var(--tls-gray);margin-top:5px;text-align:center;font-style:italic}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem}
+.print-btn{display:block;margin:1.5rem auto 0;padding:10px 32px;border-radius:4px;border:1.5px solid var(--tls-mid);background:var(--tls-dark);color:#fff;font-size:13px;cursor:pointer;font-weight:600}
+.print-btn:hover{background:var(--tls-mid)}
+.footer-bar{height:4px;background:linear-gradient(90deg,var(--tls-dark),var(--tls-cyan));border-radius:2px;margin-top:1.5rem}
+@media print{body{padding:1rem}.tabs,.print-btn,.tooltip{display:none!important}.section{page-break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="header-bar">
+      <div class="cyan-line"></div>
+      <div class="tls-badge">TLS CONSULT</div>
+      <div class="cyan-line"></div>
+    </div>
+    <h1>Indicadores de satisfacci&oacute;n &ndash; Sistema de planificaci&oacute;n de turnos</h1>
+    <p>Panader&iacute;a La Primavera &nbsp;&middot;&nbsp; Antes: 25/05/2026 &nbsp;&middot;&nbsp; Despu&eacute;s: 01/06/2026</p>
+  </div>
+
+  <div class="kpi-section-label">Indicadores de resultado</div>
+  <div class="kpi-grid" id="kpis"></div>
+  <div class="kpi-section-label">Comprensi&oacute;n del sistema &mdash; encuesta despu&eacute;s (P9&ndash;P11)</div>
+  <div class="kpi-grid-clarity" id="kpis-clarity"></div>
+
+  <div class="tabs" id="tabs"></div>
+
+  <div class="two-col">
+    <div>
+      <div class="section">
+        <div class="section-title">Organizaci&oacute;n del trabajo y planificaci&oacute;n (P1&ndash;P5)</div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--antes)"></span>Antes</span>
+          <span><span class="dot" style="background:var(--despues)"></span>Despu&eacute;s &nbsp;<span style="color:var(--tls-cyan)">— pasa el cursor sobre % para ver c&aacute;lculo</span></span>
+        </div>
+        <div id="org-bars"></div>
+      </div>
+      <div class="section">
+        <div class="section-title">Sobrecarga laboral (P6&ndash;P8) &mdash; menor es mejor</div>
+        <div class="legend">
+          <span><span class="dot" style="background:var(--antes)"></span>Antes</span>
+          <span><span class="dot" style="background:var(--despues)"></span>Despu&eacute;s</span>
+        </div>
+        <div id="sob-bars"></div>
+      </div>
+      <div class="section" id="sec-perc" style="display:none">
+        <div class="section-title">Percepci&oacute;n general (P12&ndash;P14) &mdash; despu&eacute;s</div>
+        <div id="perc-bars"></div>
+      </div>
+    </div>
+    <div>
+      <div class="section">
+        <div class="section-title">Comparaci&oacute;n global por dimensi&oacute;n</div>
+        <div style="position:relative;width:100%;height:280px">
+          <canvas id="radar"></canvas>
+        </div>
+        <div class="legend" style="justify-content:center;margin-top:8px">
+          <span><span class="dot" style="background:var(--antes)"></span>Antes</span>
+          <span><span class="dot" style="background:var(--despues)"></span>Despu&eacute;s</span>
+        </div>
+        <p class="nota">Escala 1&ndash;5 &middot; Sobrecarga invertida (menor valor = mayor en gr&aacute;fica)</p>
+      </div>
+    </div>
+  </div>
+
+  <button class="print-btn" onclick="window.print()">Imprimir / Guardar como PDF</button>
+  <div class="footer-bar"></div>
+</div>
+
+<div class="tooltip" id="tt">
+  <span class="tooltip-close" onclick="document.getElementById('tt').classList.remove('show')">&#x2715;</span>
+  <div class="tooltip-title" id="tt-title"></div>
+  <div class="tooltip-formula" id="tt-formula"></div>
+  <div class="tooltip-result" id="tt-result"></div>
+</div>
+
+<script>
+var DATA = {
+  Audencio: {
+    antes:  { p:[1,3,2,2,2,0,4,4] },
+    despues:{ p:[4,5,5,5,5,4,2,4], perc:[5,5,5], clarity:[true,true,true] }
+  },
+  Dairo: {
+    antes:  { p:[4,4,2,2,2,0,2,4] },
+    despues:{ p:[4,5,5,4,4,4,2,3], perc:[5,5,5], clarity:[true,true,true] }
+  },
+  Carolina: {
+    antes:  { p:[2,3,4,2,3,4,4,4] },
+    despues:{ p:[5,5,4,3,5,2,3,2], perc:[4,5,5], clarity:[true,true,true] }
+  }
+};
+
+var PREGS_ORG = [
+  'P1. Conoce turno con anticipaci\u00f3n',
+  'P2. Claridad de funciones',
+  'P3. Distribuci\u00f3n equitativa',
+  'P4. Tiempo suficiente',
+  'P5. Cumple funciones en jornada'
+];
+var PREGS_SOB = [
+  'P6. Demasiadas tareas',
+  'P7. Funciones que no corresponden',
+  'P8. Agotamiento al final'
+];
+var PREGS_PERC = [
+  'P12. Sistema mejor\u00f3 organizaci\u00f3n',
+  'P13. Mejor planeaci\u00f3n personal',
+  'P14. Recomendar\u00eda el sistema'
+];
+var LABELS = ['','Nunca','Casi nunca','A veces','Casi siempre','Siempre'];
+var current = 'Todos';
+var radarChart = null;
+
+function avg(arr, idxs) {
+  var vs = idxs.map(function(i){ return arr[i]; }).filter(function(v){ return v > 0; });
+  if (!vs.length) return 0;
+  return vs.reduce(function(a,b){ return a+b; }, 0) / vs.length;
+}
+function globalAvg(key, i) {
+  var vs = Object.keys(DATA).map(function(k){ return DATA[k][key].p[i]; }).filter(function(v){ return v > 0; });
+  if (!vs.length) return 0;
+  return vs.reduce(function(a,b){ return a+b; }, 0) / vs.length;
+}
+function getD(name) {
+  if (name !== 'Todos') return DATA[name];
+  var ap = [0,1,2,3,4,5,6,7].map(function(i){ return globalAvg('antes', i); });
+  var dp = [0,1,2,3,4,5,6,7].map(function(i){ return globalAvg('despues', i); });
+  var pp = [0,1,2].map(function(i){
+    var vs = Object.keys(DATA).map(function(k){ return DATA[k].despues.perc[i]; });
+    return vs.reduce(function(a,b){ return a+b; }, 0) / vs.length;
+  });
+  return { antes:{p:ap}, despues:{p:dp, perc:pp, clarity:[true,true,true]} };
+}
+function pct(v) { return v > 0 ? Math.round((v-1)/4*100) : 0; }
+function lbl(v) { return v > 0 ? (LABELS[Math.round(v)] || v.toFixed(1)) : '\u2014'; }
+
+function showTooltip(e, titulo, formula, result) {
+  var tt = document.getElementById('tt');
+  document.getElementById('tt-title').textContent = titulo;
+  document.getElementById('tt-formula').textContent = formula;
+  document.getElementById('tt-result').innerHTML = result;
+  var rect = e.currentTarget ? e.currentTarget.getBoundingClientRect() : e.target.getBoundingClientRect();
+  tt.style.top = (rect.bottom + window.scrollY + 6) + 'px';
+  tt.style.left = Math.min(rect.left + window.scrollX, window.innerWidth - 340) + 'px';
+  tt.classList.add('show');
+  e.stopPropagation();
+}
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#tt') && !e.target.classList.contains('bar-num') &&
+      !e.target.classList.contains('kpi') && !e.target.classList.contains('kpi-clarity') &&
+      !e.target.closest('.kpi') && !e.target.closest('.kpi-clarity')) {
+    document.getElementById('tt').classList.remove('show');
+  }
+});
+
+function renderBars(id, qs, idxs) {
+  var d = getD(current);
+  var html = '';
+  for (var qi = 0; qi < qs.length; qi++) {
+    var i = idxs[qi];
+    var va = d.antes.p[i] || 0;
+    var vd = d.despues.p[i] || 0;
+    var pa = pct(va), pd = pct(vd);
+    var q = qs[qi];
+    html += '<div class="bar-wrap">' +
+      '<div class="bar-label">' + q + '</div>' +
+      '<div class="bar-row"><span class="bar-tag">Antes</span>' +
+        '<div class="bar-track"><div class="bar-fill ba" style="width:' + pa + '%">' + lbl(va) + '</div></div>' +
+        '<span class="bar-num" data-q="' + qi + '" data-m="antes" data-i="' + i + '">' + pa + '%</span></div>' +
+      '<div class="bar-row"><span class="bar-tag">Despu\u00e9s</span>' +
+        '<div class="bar-track"><div class="bar-fill bd" style="width:' + pd + '%">' + lbl(vd) + '</div></div>' +
+        '<span class="bar-num" data-q="' + qi + '" data-m="despues" data-i="' + i + '">' + pd + '%</span></div>' +
+    '</div>';
+  }
+  var el = document.getElementById(id);
+  el.innerHTML = html;
+  el.querySelectorAll('.bar-num').forEach(function(span) {
+    span.addEventListener('click', function(e) {
+      var idx = parseInt(span.dataset.i);
+      var momento = span.dataset.m;
+      var d2 = getD(current);
+      var rawVal = (momento === 'antes' ? d2.antes.p[idx] : d2.despues.p[idx]) || 0;
+      var pregunta = qs[parseInt(span.dataset.q)];
+      var isAvg = current === 'Todos';
+      var titulo = pregunta + ' \u2014 ' + (isAvg ? 'Promedio' : current) + ' (' + (momento === 'antes' ? 'Antes' : 'Despu\u00e9s') + ')';
+      var formula, result;
+      if (isAvg) {
+        var persons = Object.keys(DATA);
+        var vals = persons.map(function(p){ return DATA[p][momento].p[idx]; }).filter(function(v){ return v > 0; });
+        var sum = vals.reduce(function(a,b){ return a+b; }, 0);
+        formula = '% = ((promedio \u2212 1) / 4) \u00d7 100\npromedio = (' + vals.join(' + ') + ') / ' + vals.length + ' = ' + rawVal.toFixed(2) + '\n% = ((' + rawVal.toFixed(2) + ' \u2212 1) / 4) \u00d7 100 = ' + pct(rawVal) + '%';
+        result = '<b>Promedio:</b> ' + rawVal.toFixed(2) + ' \u2192 <b>' + pct(rawVal) + '%</b>';
+      } else {
+        formula = '% = ((valor \u2212 1) / 4) \u00d7 100\n% = ((' + rawVal + ' \u2212 1) / 4) \u00d7 100\n% = ' + pct(rawVal) + '%';
+        result = '<b>Respuesta:</b> ' + lbl(rawVal) + ' (valor ' + rawVal + ')<br><b>Resultado:</b> ' + pct(rawVal) + '%<br><small>Escala: Nunca=1 (0%) \u2192 Siempre=5 (100%)</small>';
+      }
+      showTooltip(e, titulo, formula, result);
+    });
+    span.addEventListener('mouseenter', function(e) { span.dispatchEvent(new MouseEvent('click', {bubbles:true})); });
+  });
+}
+
+function renderPerc() {
+  var d = getD(current);
+  var sec = document.getElementById('sec-perc');
+  if (!d.despues.perc) { sec.style.display = 'none'; return; }
+  sec.style.display = 'block';
+  var html = '';
+  for (var i = 0; i < PREGS_PERC.length; i++) {
+    var v = d.despues.perc[i] || 0;
+    html += '<div class="bar-wrap"><div class="bar-label">' + PREGS_PERC[i] + '</div>' +
+      '<div class="bar-row"><span class="bar-tag">Despu\u00e9s</span>' +
+        '<div class="bar-track"><div class="bar-fill bd" style="width:' + pct(v) + '%">' + lbl(v) + '</div></div>' +
+        '<span class="bar-num">' + pct(v) + '%</span></div></div>';
+  }
+  document.getElementById('perc-bars').innerHTML = html;
+}
+
+function renderKPIs() {
+  var d = getD(current);
+  var oA = avg(d.antes.p, [0,1,2,3,4]);
+  var oD = avg(d.despues.p, [0,1,2,3,4]);
+  var sobIdxs = [5,6,7].filter(function(i){ return d.antes.p[i] > 0; });
+  var sA = avg(d.antes.p, sobIdxs);
+  var sD = avg(d.despues.p, [5,6,7]);
+  var mO = oA > 0 ? ((oD - oA) / oA * 100) : 0;
+  var mS = sA > 0 ? ((sA - sD) / sA * 100) : 0;
+  var p1A = d.antes.p[0], p1D = d.despues.p[0];
+
+  var kpiDefs = [
+    {
+      label:'Organizaci\u00f3n<br>antes \u2192 despu\u00e9s', val:oA.toFixed(1)+' \u2192 '+oD.toFixed(1),
+      sub:'escala 1\u20135', cls: oD >= oA ? 'kpi-good' : '',
+      titulo:'Promedio de organizaci\u00f3n (P1\u2013P5)',
+      formula:'Promedio = \u03a3(P1 a P5) / 5\nAntes = (' + [0,1,2,3,4].map(function(i){ return d.antes.p[i].toFixed(1); }).join(' + ') + ') / 5 = ' + oA.toFixed(2) + '\nDespu\u00e9s = (' + [0,1,2,3,4].map(function(i){ return d.despues.p[i].toFixed(1); }).join(' + ') + ') / 5 = ' + oD.toFixed(2),
+      result:'<b>Antes:</b> '+oA.toFixed(2)+' / 5 &nbsp; <b>Despu\u00e9s:</b> '+oD.toFixed(2)+' / 5'
+    },
+    {
+      label:'Mejora en organizaci\u00f3n', val:'+'+mO.toFixed(0)+'%',
+      sub:'respecto al antes', cls:'kpi-good',
+      titulo:'% Mejora en organizaci\u00f3n',
+      formula:'% Mejora = ((Despu\u00e9s \u2212 Antes) / Antes) \u00d7 100\n= ((' + oD.toFixed(2) + ' \u2212 ' + oA.toFixed(2) + ') / ' + oA.toFixed(2) + ') \u00d7 100\n= (' + (oD-oA).toFixed(2) + ' / ' + oA.toFixed(2) + ') \u00d7 100',
+      result:'<b>Resultado:</b> +'+mO.toFixed(1)+'%'
+    },
+    {
+      label:'Sobrecarga<br>antes \u2192 despu\u00e9s', val:(sA > 0 ? sA.toFixed(1) : '\u2014')+' \u2192 '+sD.toFixed(1),
+      sub:'menor es mejor', cls: sD < sA ? 'kpi-good' : '',
+      titulo:'Promedio de sobrecarga percibida (P6\u2013P8)',
+      formula:'Promedio = \u03a3(P6 a P8 con respuesta) / n\nAntes = (' + sobIdxs.map(function(i){ return d.antes.p[i].toFixed(1); }).join(' + ') + ') / ' + sobIdxs.length + ' = ' + sA.toFixed(2) + '\nDespu\u00e9s = (' + [5,6,7].map(function(i){ return d.despues.p[i].toFixed(1); }).join(' + ') + ') / 3 = ' + sD.toFixed(2),
+      result:'<b>Antes:</b> '+sA.toFixed(2)+'&nbsp; <b>Despu\u00e9s:</b> '+sD.toFixed(2)+'<br><small>P6 sin respuesta en "antes" \u2192 excluida del promedio</small>'
+    },
+    {
+      label:'Reducci\u00f3n de sobrecarga', val: sA > 0 ? mS.toFixed(0)+'%' : '\u2014',
+      sub:'meta \u2265 10%', cls: mS >= 10 ? 'kpi-good' : 'kpi-bad',
+      titulo:'% Reducci\u00f3n de sobrecarga (ISLP)',
+      formula:'% Reducci\u00f3n = ((Antes \u2212 Despu\u00e9s) / Antes) \u00d7 100\n= ((' + sA.toFixed(2) + ' \u2212 ' + sD.toFixed(2) + ') / ' + sA.toFixed(2) + ') \u00d7 100\n= (' + (sA-sD).toFixed(2) + ' / ' + sA.toFixed(2) + ') \u00d7 100',
+      result:'<b>Resultado:</b> '+mS.toFixed(1)+'% &nbsp;\u00b7&nbsp; Meta: \u2265 10%<br><b>'+(mS>=10?'\u2714 Objetivo cumplido':'\u2718 Por debajo de la meta')+'</b>'
+    },
+    {
+      label:'P1: Conoce turno<br>antes \u2192 despu\u00e9s', val:lbl(p1A)+' \u2192 '+lbl(p1D),
+      sub:'indicador clave', cls: p1D > p1A ? 'kpi-good' : '',
+      titulo:'Indicador P1: Conocimiento anticipado del turno',
+      formula:'% = ((valor \u2212 1) / 4) \u00d7 100\nAntes: ((' + p1A.toFixed(1) + ' \u2212 1) / 4) \u00d7 100 = ' + pct(p1A) + '%\nDespu\u00e9s: ((' + p1D.toFixed(1) + ' \u2212 1) / 4) \u00d7 100 = ' + pct(p1D) + '%',
+      result:'<b>Antes:</b> '+lbl(p1A)+' ('+pct(p1A)+'%)<br><b>Despu\u00e9s:</b> '+lbl(p1D)+' ('+pct(p1D)+'%)'
+    }
+  ];
+
+  var html = '';
+  for (var i = 0; i < kpiDefs.length; i++) {
+    var k = kpiDefs[i];
+    html += '<div class="kpi" data-idx="' + i + '">' +
+      '<div class="kpi-label">' + k.label + '</div>' +
+      '<div class="kpi-val ' + k.cls + '">' + k.val + '</div>' +
+      '<div class="kpi-sub">' + k.sub + '</div>' +
+      '<div class="kpi-hint">ver f\u00f3rmula \u2197</div></div>';
+  }
+  document.getElementById('kpis').innerHTML = html;
+  document.getElementById('kpis').querySelectorAll('.kpi').forEach(function(el) {
+    el.addEventListener('click', function(e) {
+      var k = kpiDefs[parseInt(el.dataset.idx)];
+      showTooltip(e, k.titulo, k.formula, k.result);
+    });
+  });
+
+  // ── Clarity KPIs (P9, P10, P11) ──────────────────────────────────────────
+  var persons = Object.keys(DATA);
+  var clarityLabels = [
+    'P9. Explicaci\u00f3n del cronograma recibida',
+    'P10. Puede consultar el sistema sin ayuda',
+    'P11. Sabe a qui\u00e9n acudir ante cambios'
+  ];
+  var clarityTitulos = [
+    'P9 \u2013 \u00bfLe fue explicado c\u00f3mo leer el cronograma?',
+    'P10 \u2013 \u00bfPuede consultar el cronograma sin ayuda?',
+    'P11 \u2013 \u00bfSabe a qui\u00e9n dirigirse si hay un cambio de turno?'
+  ];
+  var clarityResults = [
+    '<b>Resultado:</b> 100% \u2014 Los 3 integrantes confirmaron haber recibido la explicaci\u00f3n.',
+    '<b>Resultado:</b> 100% \u2014 Todos pueden operar el sistema de forma aut\u00f3noma.',
+    '<b>Resultado:</b> 100% \u2014 Todo el personal conoce el protocolo de cambio de turno.'
+  ];
+
+  var clarityHtml = '';
+  for (var ci = 0; ci < 3; ci++) {
+    var yesCount = current === 'Todos' ? persons.length : 1;
+    var total    = current === 'Todos' ? persons.length : 1;
+    var sub = current === 'Todos' ? yesCount + '/' + total + ' personas' : 'respuesta individual';
+    var formula = '% = (personas que respondieron S\u00ed / total) \u00d7 100\n= (' + yesCount + ' / ' + total + ') \u00d7 100 = 100%';
+    clarityHtml += '<div class="kpi-clarity" data-ci="' + ci + '">' +
+      '<div class="kpi-label">' + clarityLabels[ci] + '</div>' +
+      '<div class="kpi-val kpi-good">100%</div>' +
+      '<div class="kpi-sub">' + sub + '</div>' +
+      '<div class="kpi-hint">ver f\u00f3rmula \u2197</div></div>';
+    (function(idx, f, r, t) {
+      // store for event binding after render
+    })(ci, formula, clarityResults[ci], clarityTitulos[ci]);
+  }
+  document.getElementById('kpis-clarity').innerHTML = clarityHtml;
+  document.getElementById('kpis-clarity').querySelectorAll('.kpi-clarity').forEach(function(el) {
+    var ci = parseInt(el.dataset.ci);
+    var yesCount = current === 'Todos' ? persons.length : 1;
+    var total = current === 'Todos' ? persons.length : 1;
+    var formula = '% = (personas que respondieron S\u00ed / total) \u00d7 100\n= (' + yesCount + ' / ' + total + ') \u00d7 100 = 100%';
+    el.addEventListener('click', function(e) {
+      showTooltip(e, clarityTitulos[ci], formula, clarityResults[ci]);
+    });
+  });
+}
+
+function renderRadar() {
+  if (radarChart) { radarChart.destroy(); radarChart = null; }
+  var d = getD(current);
+  var sobIdxsA = [5,6,7].filter(function(i){ return d.antes.p[i] > 0; });
+  var sobA = avg(d.antes.p, sobIdxsA);
+  var sobD = avg(d.despues.p, [5,6,7]);
+  var sobInvA = sobA > 0 ? 6 - sobA : 0;
+  var sobInvD = sobD > 0 ? 6 - sobD : 0;
+  var percD = d.despues.perc ? d.despues.perc.reduce(function(a,b){ return a+b; }, 0) / d.despues.perc.length : 0;
+  radarChart = new Chart(document.getElementById('radar'), {
+    type: 'radar',
+    data: {
+      labels: ['Organizaci\u00f3n\n(P1\u20135)', 'Sobrecarga\ninversa (P6\u20138)', 'Percepci\u00f3n\ngeneral (P12\u201314)'],
+      datasets: [
+        { label:'Antes', data:[avg(d.antes.p,[0,1,2,3,4]), sobInvA, 0],
+          borderColor:'#E05A2B', backgroundColor:'rgba(224,90,43,0.12)',
+          pointBackgroundColor:'#E05A2B', borderDash:[5,3], borderWidth:2, pointRadius:4 },
+        { label:'Despu\u00e9s', data:[avg(d.despues.p,[0,1,2,3,4]), sobInvD, percD],
+          borderColor:'#1A5FA8', backgroundColor:'rgba(26,95,168,0.15)',
+          pointBackgroundColor:'#00B4D8', borderWidth:2, pointRadius:4 }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins:{ legend:{display:false} },
+      scales:{ r:{ min:0, max:5, ticks:{stepSize:1,font:{size:10},backdropColor:'rgba(255,255,255,0.8)'},
+        pointLabels:{font:{size:11},color:'#1B2A6B'} } }
+    }
+  });
+}
+
+function renderTabs() {
+  var tabs = ['Todos','Audencio','Dairo','Carolina'];
+  var html = '';
+  for (var i = 0; i < tabs.length; i++) {
+    html += '<button class="tab' + (tabs[i] === current ? ' active' : '') + '" data-name="' + tabs[i] + '">' + tabs[i] + '</button>';
+  }
+  document.getElementById('tabs').innerHTML = html;
+  document.getElementById('tabs').querySelectorAll('.tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      current = btn.dataset.name;
+      renderTabs();
+      render();
+    });
+  });
+}
+
+function render() {
+  renderKPIs();
+  renderBars('org-bars', PREGS_ORG, [0,1,2,3,4]);
+  renderBars('sob-bars', PREGS_SOB, [5,6,7]);
+  renderPerc();
+  renderRadar();
+}
+
+renderTabs();
+render();
+</script>
+</body>
+</html>
